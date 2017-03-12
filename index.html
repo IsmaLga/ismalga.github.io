@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.13/datatables.min.css"/>
+
+<head>
+  <title>
+    Schedulers
+  </title>
+  <meta charset="utf-8" />
+</head>
+
+<body>
+  <div class="container">
+    <section>
+      <div class="jumbotron">
+        <div class="row">
+          <div class="col-md-12">
+            <center><h1>Schedulers</h1></center>
+          </div>
+        </div>
+        <br>
+        <div class="row">
+          <div class="col-md-5">
+            <div class="row">
+              <div class="col-md-12">
+                <center><h2><b>Create a process</b></h2></center>
+              </div>
+            </div>
+            <div id="notify">
+            </div>
+            <br>
+            <div class="row">
+              <div class="col-md-4">
+                <label><b>Process name:&nbsp;</b></label>
+              </div>
+              <div class="col-md-8">
+                <input type="text" id="name" placeholder="Process name"/>
+              </div>
+            </div>
+            <br>
+            <div class="row">
+              <div class="col-md-4">
+                <label><b>Service time:&nbsp;</b></label>
+              </div>
+              <div class="col-md-8">
+                <input type="number" id="st" placeholder="Service time"/>
+              </div>
+            </div>
+            <p><center><a id="save-process" class="btn btn-primary" role="button">Save process</a></center></p>
+            <div class="row">
+              <div class="col-md-12">
+                <center><h2><b>Scheduler kind</b></h2></center>
+              </div>
+            </div>
+            <br>
+            <div class="row">
+              <div class="col-md-4">
+                <label>Scheduler&nbsp;</label>
+              </div>
+              <div class="col-md-8">
+                <select id="kind">
+                  <option value="fcfs" selected>First come fisrt serve</option>
+                  <option value="sjf">Shortest job first</option>
+                  <option value="rr">Round Robin</option>
+                </select>
+              </div>
+            </div>
+            <div id="quantum" style="display: none;">
+              <div class="row">
+                <div class="col-md-12">
+                  <center><h2><b>Quantum time</b></h2></center>
+                </div>
+              </div>
+              <br>
+              <div class="row">
+                <div class="col-md-4">
+                  <label><b>Time:&nbsp;</b></label>
+                </div>
+                <div class="col-md-8">
+                  <input type="number" id="quantuminput" placeholder="Time"/>
+                </div>
+              </div>
+            </div>
+            <p><center><a id="get" class="btn btn-primary" role="button">Get results</a></center></p>
+          </div>
+          <div class="col-md-7">
+            <div class="progress" id="timeline">
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <table id="processtable" class="table table-hover dt-responsive" cellspacing="0" width="100%">
+                  <thead>
+                      <tr>
+                          <th><center>Process</center></th>
+                          <th><center>Wait time</center></th>
+                          <th><center>Turn around time</center></th>
+                      </tr>
+                  </thead>
+                  <tfoot>
+                      <tr>
+                        <th><center>Process</center></th>
+                        <th><center>Wait time</center></th>
+                        <th><center>Turn around time</center></th>
+                      </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <h4><b>Total wait time</b></h4>
+                <p id="twt"></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <h4><b>Average waiting time</b></h4>
+                <p id="awt"></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <h4><b>Total turn around time</b></h4>
+                <p id="ttat"></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <h4><b>Average turn around time</b></h4>
+                <p id="atat"></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <h4><b>Throughput</b></h4>
+                <p id="trou"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="crossorigin="anonymous"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.13/datatables.min.js"></script>
+
+<script>
+var processes = [];
+var process = [];
+var name,
+    bt;
+
+$(document).ready(function(){
+  var process_table = $('#processtable').DataTable( {
+      "paging":   false,
+      "ordering": false,
+      "info":     false,
+      "searching": false
+  });
+
+  $('#save-process').on('click',function(){
+    name = $('#name').val();
+    bt = $('#st').val();
+    process = {
+          'name' : name,
+          'bt' : parseInt(bt),
+          'color' : getRandomColor()
+    };
+    processes.push(process);
+    $('#notify').empty();
+    $('#notify').append('<div class="alert alert-success"><center><strong>Proceso ' + name + ' agregado</center></strong></div>');
+  });
+
+  $('#kind').on('change',function(){
+    if(this.value  === 'rr'){
+      $('#quantum').show();
+    }
+    else{
+      $('#quantum').hide();
+    }
+    $('#twt').html("");
+    $('#awt').html("");
+    $('#ttat').html("");
+    $('#atat').html("");
+    $('#trou').html("");
+    $('#timeline').html("");
+    process_table.rows().remove().draw();
+  });
+
+  $('#get').on('click',function(){
+    if($('#kind').val() === 'fcfs'){
+      process_table.rows().remove().draw();
+      scheduler(process_table,'fcfs',JSON.parse(JSON.stringify(processes)));
+    }
+    else if($('#kind').val() === 'sjf') {
+      process_table.rows().remove().draw();
+      scheduler(process_table,'sjf',JSON.parse(JSON.stringify(processes)));
+    }
+    else if($('#kind').val() === 'rr') {
+      process_table.rows().remove().draw();
+      rr(process_table,'rr',JSON.parse(JSON.stringify(processes)));
+    }
+  });
+});
+
+function getRandomColor() {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+function scheduler(process_table, kind, processesm){
+  var totalwt;
+  var i;
+  var tempross;
+  var swapped;
+  var total_pt;
+  var div = "";
+  var tr;
+  var twt = "";
+  var twtn = 0;
+  var ttat = "";
+  var ttatn = 0;
+
+  if(kind === 'sjf'){
+    do{
+      swapped = false;
+      for(i = 1; i <= processesm.length - 1; i++){
+        if(processesm[i - 1]['bt'] > processesm[i]['bt'] ){
+          tempross = processesm[i - 1];
+          processesm[i - 1] = processesm[i];
+          processesm[i] = tempross;
+          swapped = true;
+        }
+      }
+    }
+    while(swapped);
+  }
+
+  processesm[0]['wt'] = 0;
+  processesm[0]['tat'] = processesm[0]['bt'];
+  total_pt = processesm[0]['bt'];
+  for(i = 1; i <= processesm.length - 1; i++){
+      processesm[i]['wt'] =  total_pt;
+      twtn += total_pt;
+      processesm[i]['tat'] =  total_pt + processesm[i]['bt'];
+      ttatn += processesm[i]['tat'];
+      total_pt += processesm[i]['bt'];
+  }
+
+  for(i = 0; i <= processesm.length - 1; i++){
+    tr = "<tr><td><center>" + processesm[i]['name'] + "</center></td><td><center>" + processesm[i]['wt'] + "</center></td><td><center>" + processesm[i]['tat'] + "</center></td><tr>";
+    twt += processesm[i]['wt'] + " + ";
+    ttat += processesm[i]['tat'] + " + ";
+    process_table.row.add($(tr)).draw();
+    div += "<div class='progress-bar' style='width: " + Math.round(processesm[i]['bt']/total_pt * 100) +"%;background-color:"+ processesm[i]['color'] +"'><span>"+  processesm[i]['name'] +"</span></div>";
+  }
+
+  var twt = twt.slice(0, twt.length - 2);
+  var ttat = ttat.slice(0, ttat.length - 2);
+  twt += " = " + twtn + " ms";
+  ttat += " = " + ttatn + " ms";
+  $('#twt').html(twt);
+  $('#awt').html(twtn + "/" + processesm.length + " = " + twtn/processesm.length + " ms");
+  $('#ttat').html(ttat);
+  $('#atat').html(ttatn + "/" + processesm.length + " = " + ttatn/processesm.length + " ms");
+  $('#trou').html(processesm.length + " jobs/" + total_pt + " sec = " + (processesm.length/total_pt).toFixed(2) + " jobs/sec");
+  $('#timeline').html(div);
+}
+
+function rr(process_table, kind, processesm){
+  var processestemp = [];
+  var quantum = $('#quantuminput').val();
+  quantum = parseInt(quantum);
+  var totalwt;
+  var i = 0, j = 0;
+  var tempross;
+  var swapped;
+  var total_pt;
+  var div = "";
+  var tr;
+  var twt = "";
+  var twtn = 0;
+  var ttat = "";
+  var ttatn = 0;
+  var totaltime = 0;
+  var finish = false;
+
+loop1:
+  while(!finish){
+    loop2:
+    for(i = 0; i <= processesm.length - 1; i++){
+      if(processesm[i]['bt'] == 0){
+        loop3:
+        for(j = 0; j <= processesm.length - 1; j++){
+          if(processesm[i]['bt'] != 0){
+            break loop3;
+          }
+          else {
+            finish = true;
+          }
+        }
+      }
+      else if(quantum < processesm[i]['bt']){
+        process = {
+          'name' : processesm[i]['name'],
+          'bt' : quantum,
+          'color' : processesm[i]['color']
+        };
+        totaltime += quantum;
+        processesm[i]['bt'] -= quantum;
+      }
+      else if(quantum >= processesm[i]['bt']){
+        process = {
+          'name' : processesm[i]['name'],
+          'bt' : processesm[i]['bt'],
+          'color' : processesm[i]['color']
+        };
+        totaltime += processesm[i]['bt'];
+        processesm[i]['wt'] = totaltime - processes[i]['bt'];
+        processesm[i]['tat'] = totaltime;
+        processesm[i]['bt'] = 0;
+      }
+      processestemp.push(process);
+    }
+  }
+
+  for(i = 0; i <= processestemp.length - 1; i++){
+    div += "<div class='progress-bar' style='width: " + Math.round(processestemp[i]['bt']/totaltime * 100) +"%;background-color:"+ processestemp[i]['color'] +"'><span>"+  processestemp[i]['name'] +"</span></div>";
+  }
+
+  for(i = 0; i <= processes.length - 1; i++){
+    twt += processesm[i]['wt'] + " + ";
+    twtn += processesm[i]['wt'];
+    ttat += processesm[i]['tat'] + " + ";
+    ttatn += processesm[i]['tat'];
+    tr = "<tr><td><center>" + processesm[i]['name'] + "</center></td><td><center>" + processesm[i]['wt'] + "</center></td><td><center>" + processesm[i]['tat'] + "</center></td><tr>";
+    process_table.row.add($(tr)).draw();
+  }
+
+  var twt = twt.slice(0, twt.length - 2);
+  var ttat = ttat.slice(0, ttat.length - 2);
+  twt += " = " + twtn + " ms";
+  ttat += " = " + ttatn + " ms";
+  $('#twt').html(twt);
+  $('#awt').html(twtn + "/" + processes.length + " = " + twtn/processes.length + " ms");
+  $('#ttat').html(ttat);
+  $('#atat').html(ttatn + "/" + processes.length + " = " + ttatn/processes.length + " ms");
+  $('#trou').html(processes.length + " jobs/" + totaltime + " sec = " + (processes.length/totaltime).toFixed(2) + " jobs/sec");
+  $('#timeline').html(div);
+}
+</script>
